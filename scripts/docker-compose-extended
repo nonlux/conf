@@ -1,0 +1,74 @@
+#!/bin/zsh
+
+# install jq
+# config file ~/.dcc.json
+# {
+#  "alias1": {
+#     "path": "path/to/docker-compose/folder",
+#     "file": "relative/path/to/docker-compose.yml"
+# },
+# "alias2": {
+#     "path": "another/path/to/docker-compose/folder"
+# }
+# }
+
+#!/bin/bash
+# install jq
+# config file ~/.dcc.json
+
+# Configuration
+CONFIG_FILE="${HOME}/.dcc.json"  # Path to the JSON configuration file
+
+# Function to display usage
+usage() {
+    echo "Usage: $0 <alias> [docker-compose command]"
+    exit 1
+}
+
+# Check if jq is installed
+if ! command -v jq &> /dev/null; then
+    echo "jq could not be found. Please install it."
+    exit 1
+fi
+
+# Check if the configuration file exists
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Configuration file $CONFIG_FILE does not exist."
+    exit 1
+fi
+
+# Check if an alias is provided
+if [[ -z "$1" ]]; then
+    usage
+fi
+
+ALIAS=$1
+DOCKER_COMPOSE_COMMAND=${@:2}  # Capture all remaining arguments as the Docker Compose command
+
+# Extract the path and file (if set) from the JSON configuration file based on the alias
+DC_PATH=$(jq -r ".[\"$ALIAS\"].path" $CONFIG_FILE)
+DOCKER_COMPOSE_FILE=$(jq -r ".[\"$ALIAS\"].file // \"docker-compose.yml\"" $CONFIG_FILE)
+
+# Check if the path was found in the configuration
+if [ -z "$DC_PATH" ]; then
+    echo "Alias '$ALIAS' not found in configruation file."
+    exit 1
+fi
+
+
+if [ -z "$DOCKER_COMPOSE_COMMAND" ]; then
+   DOCKER_COMPOSE_COMMAND="ps"
+fi
+
+# Navigate to the directory and execute Docker Compose commands
+cd $HOME/$DC_PATH || { echo "Failed to change to directory $DC_PATH"; exit 1; }
+echo "Changed to directory: $(pwd)"
+
+
+if [ -f "./.env" ]; then
+    echo "docker-compose -f $DOCKER_COMPOSE_FILE $DOCKER_COMPOSE_COMMAND"
+    docker compose -f $DOCKER_COMPOSE_FILE --env-file ./.env  $DOCKER_COMPOSE_COMMAND
+else
+    echo "docker-compose -f $DOCKER_COMPOSE_FILE $DOCKER_COMPOSE_COMMAND"
+    docker compose -f $DOCKER_COMPOSE_FILE $DOCKER_COMPOSE_COMMAND
+fi
