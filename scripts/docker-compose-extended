@@ -12,10 +12,6 @@
 # }
 # }
 
-#!/bin/bash
-# install jq
-# config file ~/.dcc.json
-
 # Configuration
 CONFIG_FILE="${HOME}/.dcc.json"  # Path to the JSON configuration file
 
